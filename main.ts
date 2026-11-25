@@ -5,16 +5,32 @@ const ENTRY =
 
 // Gate: /output/entry.txt must be UTF-8 text of 1-200 characters,
 // exactly one line, not only whitespace.
-const chars = [...ENTRY].length;
-if (chars < 1 || chars > 200) {
-  throw new Error(`entry length ${chars} chars is outside the 1-200 gate`);
+// validateEntry returns the entry unchanged after checking every gate
+// condition, so the caller writes exactly the validated text.
+function validateEntry(entry: string): string {
+  const chars = [...entry].length;
+  if (chars < 1 || chars > 200) {
+    throw new Error(`entry length ${chars} chars is outside the 1-200 gate`);
+  }
+  if (entry.includes("\n") || entry.includes("\r")) {
+    throw new Error("entry must be a single line");
+  }
+  if (entry.trim().length === 0) {
+    throw new Error("entry must not be only whitespace");
+  }
+  if (entry !== entry.trim()) {
+    throw new Error("entry must not have leading or trailing whitespace");
+  }
+  return entry;
 }
-if (ENTRY.includes("\n") || ENTRY.includes("\r")) {
-  throw new Error("entry must be a single line");
-}
-if (ENTRY.trim().length === 0) {
-  throw new Error("entry must not be only whitespace");
+
+const validated = validateEntry(ENTRY);
+
+// Re-check the validated text right before writing, so a later edit to
+// ENTRY cannot silently bypass the gate.
+if ([...validated].length !== [...ENTRY].length || validated !== ENTRY) {
+  throw new Error("validated entry does not match the source entry");
 }
 
 mkdirSync("/output", { recursive: true });
-writeFileSync("/output/entry.txt", ENTRY, "utf8");
+writeFileSync("/output/entry.txt", validated, "utf8");
